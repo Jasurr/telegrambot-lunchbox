@@ -26,6 +26,8 @@ public class LunchBoxMenu {
 
     private Integer line;
 
+    private Integer quantity = 0;
+
     @Enumerated(EnumType.STRING)
     private WeekDays weekday;
 
