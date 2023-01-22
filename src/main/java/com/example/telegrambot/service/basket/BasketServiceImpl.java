@@ -23,8 +23,9 @@ public class BasketServiceImpl implements BasketService {
 
     @Override
     public Basket saveBasket(Basket basket) {
-        Basket oneBasket = basketRepository.getOneBasket(basket.getBasketIdentity().getChatId(), basket.getBasketIdentity().getMenuId());
-
+        Basket oneBasket = basketRepository.findActiveCountByChatIdAndMenuId(
+                basket.getBasketIdentity().getChatId(),
+                basket.getBasketIdentity().getMenuId());
         if (oneBasket != null) {
             basket.setQuantity(oneBasket.getQuantity() + basket.getQuantity());
         }
@@ -43,8 +44,8 @@ public class BasketServiceImpl implements BasketService {
 
     @Override
     public boolean updateQuantity(Long chatId, Long menuId, Integer quantity) {
+        //TODO: shu joyda xatolik bor
         var menuOptional = lunchBoxMenuRepository.findById(menuId);
-        var allCount = basketRepository.getAllCount(menuId);
         if (menuOptional.isPresent()) {
             var menu = menuOptional.get();
             if (menu.getQuantity() > 0) {
@@ -73,8 +74,6 @@ public class BasketServiceImpl implements BasketService {
             if (menu.getQuantity() - basket.getQuantity() < 1) {
                 return false;
             }
-            menu.setQuantity(menu.getQuantity() - basket.getQuantity());
-            menuService.saveMenu(menu);
             basket.setStatus(Status.valueOf(status));
             basketRepository.save(basket);
             return true;

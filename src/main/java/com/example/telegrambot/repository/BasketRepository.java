@@ -27,4 +27,7 @@ public interface BasketRepository extends JpaRepository<Basket, Long> {
     @Query(value = "select t.quantity from cosg_basket t where t.status = 'ACTIVE' and t.menu_id = ?1", nativeQuery = true)
     Integer getAllCount(Long menuId);
 
+    @Query(value = "select * from cosg_basket where status = 'ACTIVE' and chat_id = ?1 and menu_id = ?2", nativeQuery = true)
+    Basket findActiveCountByChatIdAndMenuId(Long chatId, Long menuId);
+
 }
