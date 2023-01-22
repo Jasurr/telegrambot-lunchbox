@@ -20,6 +20,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public List<Orders> getOrdersListByChatId(Long chatId) {
+        return ordersRepository.getOrdersByChatId(chatId);
+    }
+
+    @Override
     public void saveOrders(List<Orders> ordersList) {
         ordersRepository.saveAll(ordersList);
     }

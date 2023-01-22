@@ -22,6 +22,8 @@ import java.time.LocalDate;
 
 import static com.example.telegrambot.command.ButtonCommands.TO_BACK;
 import static com.example.telegrambot.command.ButtonCommands.TO_BASKET;
+import static com.example.telegrambot.command.MainCommandMenu.MENU;
+import static com.example.telegrambot.command.MainCommandMenu.MY_ORDERS;
 import static com.example.telegrambot.service.basket.BasketButtonConstants.*;
 
 @Slf4j
@@ -73,8 +75,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/help":
                     prepareAndSendMessage(chatId, HELP_TEXT);
                     break;
-                case "Menu":
+                case MENU:
                     showAllMenus(chatId);
+                    break;
+                case MY_ORDERS:
+                    showMyOrders(chatId);
                     break;
                 case "/myOrders":
                     break;
@@ -123,10 +128,27 @@ public class TelegramBot extends TelegramLongPollingBot {
                 showAllMenus(chatId);
             } else if (callbackData.contains(APPROVE_ORDER)) {
                 createOrder(chatId);
+            } else if (callbackData.contains(CLEAR_BASKET)) {
+                String msg = "";
+                if (!basketService.getCashChatId(chatId).isEmpty()) {
+                    basketService.clearBasket(chatId);
+                    msg = "Savatcha tozalandi!";
+                } else {
+                    msg = "Savatchadan mahsulotlar yo'q";
+                }
+                prepareAndSendMessage(chatId, msg);
             }
 
         }
 
+    }
+
+    /**
+     * Buyurtmalar tarixini ko'rish
+     * @param chatId
+     */
+    private void showMyOrders(Long chatId) {
+        executeMessage(new ExecuteMainMenu(orderService, menuService).showMyOrders(chatId));
     }
 
     /**
@@ -205,7 +227,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param textToSend
      */
     private void prepareAndSendMessage(long chatId, String textToSend) {
-        executeMessage(new ExecuteMainMenu().prepareAndSendMessage(chatId, textToSend));
+        executeMessage(new ExecuteMainMenu(orderService, menuService).prepareAndSendMessage(chatId, textToSend));
     }
 
     /**
@@ -214,7 +236,12 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param chatId
      */
     private void createOrder(Long chatId) {
-        executeMessage(new ExecuteBasketMessage(menuService, basketService).createOrder(chatId, orderService));
-        prepareAndSendMessage(chatId, "MAIN_MENU");
+        if (!basketService.getCashChatId(chatId).isEmpty()) {
+            executeMessage(new ExecuteBasketMessage(menuService, basketService).createOrder(chatId, orderService));
+            prepareAndSendMessage(chatId, "MAIN_MENU");
+        } else {
+            prepareAndSendMessage(chatId, "Eng kam buyurtma soni 1. Iltimos oldin mahsulotlarni tanlang!");
+            showAllMenus(chatId);
+        }
     }
 }

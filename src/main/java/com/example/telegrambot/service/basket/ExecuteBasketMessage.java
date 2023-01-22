@@ -195,10 +195,10 @@ public class ExecuteBasketMessage {
         basketList.forEach(r -> {
             LunchBoxMenu menu = menuService.getMenuById(r.getBasketIdentity().getMenuId());
             str.append("<i>");
-            str.append(r.getQuantity() * r.getQuantity() + " x ");
+            str.append(r.getQuantity() + " x ");
             str.append(menu.getName());
             str.append("</i> narxi:<b>");
-            formatAmount(menu.getAmount(), str);
+            formatAmount(menu.getAmount() * r.getQuantity(), str);
             str.append("</b>\n");
             amount.set((double) (amount.get() + r.getQuantity() * menu.getAmount()));
         });
@@ -260,6 +260,7 @@ public class ExecuteBasketMessage {
             order.setChatId(chatId);
             order.setMenuId(menu.getMenuId());
             order.setAmount(r.getQuantity() * menu.getAmount());
+            order.setQuantity(r.getQuantity());
             ordersList.add(order);
             orderService.createOrder(order);
         });

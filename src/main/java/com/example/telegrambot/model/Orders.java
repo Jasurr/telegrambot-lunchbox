@@ -29,6 +29,8 @@ public class Orders {
     @NotNull
     private Double amount;
 
+    private Integer quantity;
+
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus = PaymentStatus.NOT_PAID_YET;
 
@@ -42,6 +44,7 @@ public class Orders {
                 ", chatId=" + chatId +
                 ", menuId=" + menuId +
                 ", amount=" + amount +
+                ", paymentStatus=" + paymentStatus +
                 ", registeredAt=" + registeredAt +
                 '}';
     }

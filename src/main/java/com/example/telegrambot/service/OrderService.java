@@ -8,6 +8,8 @@ public interface OrderService {
 
     void createOrder(Orders order);
 
+    List<Orders> getOrdersListByChatId(Long chatId);
+
     void saveOrders(List<Orders> ordersList);
 
     void updateOrder(Long chatId, Long orderId);

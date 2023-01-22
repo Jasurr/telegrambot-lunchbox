@@ -23,6 +23,11 @@ public class BasketServiceImpl implements BasketService {
 
     @Override
     public Basket saveBasket(Basket basket) {
+        Basket oneBasket = basketRepository.getOneBasket(basket.getBasketIdentity().getChatId(), basket.getBasketIdentity().getMenuId());
+
+        if (oneBasket != null) {
+            basket.setQuantity(oneBasket.getQuantity() + basket.getQuantity());
+        }
         return basketRepository.save(basket);
     }
 
