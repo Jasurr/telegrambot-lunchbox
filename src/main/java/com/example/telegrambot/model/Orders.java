@@ -29,8 +29,11 @@ public class Orders {
     @NotNull
     private Double amount;
 
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus = PaymentStatus.NOT_PAID_YET;
+
     @NotNull
-    private Timestamp registeredAt;
+    private Timestamp registeredAt = new Timestamp(System.currentTimeMillis());
 
     @Override
     public String toString() {

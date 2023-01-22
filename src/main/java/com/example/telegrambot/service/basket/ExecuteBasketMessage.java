@@ -1,10 +1,9 @@
-package com.example.telegrambot.service.cash;
+package com.example.telegrambot.service.basket;
 
-import com.example.telegrambot.model.Cash;
-import com.example.telegrambot.model.CashIdentity;
-import com.example.telegrambot.model.LunchBoxMenu;
-import com.example.telegrambot.model.WeekDays;
+import com.example.telegrambot.model.*;
+import com.example.telegrambot.service.OrderService;
 import com.example.telegrambot.service.main.MenuService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -17,19 +16,28 @@ import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
-import static com.example.telegrambot.service.cash.CashButtonConstants.*;
+import static com.example.telegrambot.command.ButtonCommands.TO_BACK;
+import static com.example.telegrambot.command.ButtonCommands.TO_BASKET;
+import static com.example.telegrambot.service.basket.BasketButtonConstants.*;
 
-public class ExecuteCashMessage {
+public class ExecuteBasketMessage {
 
     private final MenuService menuService;
-    private final CashService cashService;
+    private final BasketService basketService;
+
+
     private SendMessage message = new SendMessage();
 
+    private InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+    private List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+    private List<InlineKeyboardButton> rowInLine = new ArrayList<>();
 
-    public ExecuteCashMessage(MenuService menuService, CashService cashService) {
+
+    public ExecuteBasketMessage(MenuService menuService, BasketService basketService) {
         this.menuService = menuService;
-        this.cashService = cashService;
+        this.basketService = basketService;
     }
 
 
@@ -57,6 +65,12 @@ public class ExecuteCashMessage {
         message.enableHtml(true);
         keyboardRows.add(row);
 
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add(TO_BASKET);
+        row2.add(TO_BACK);
+
+        keyboardRows.add(row2);
+
         keyboardMarkup.setKeyboard(keyboardRows);
         keyboardMarkup.setSelective(true);
         keyboardMarkup.setResizeKeyboard(true);
@@ -70,7 +84,7 @@ public class ExecuteCashMessage {
                                                   long messageId,
                                                   Long menuId) {
         var menu = menuService.getMenuById(menuId);
-        var cash = cashService.getByChatIdAndMenuId(chatId, menuId);
+        var cash = basketService.getByChatIdAndMenuId(chatId, menuId);
         EditMessageText message = new EditMessageText();
         message.setChatId(String.valueOf(chatId));
         message.setMessageId((int) messageId);
@@ -100,19 +114,19 @@ public class ExecuteCashMessage {
         message.setReplyMarkup(markupInLine);
         message.enableHtml(true);
 //      Korzinkaga saqlash
-        Cash cash = new Cash();
-        CashIdentity cashIdentity = new CashIdentity();
-        cashIdentity.setMenuId(menu.getMenuId());
-        cashIdentity.setChatId(chatId);
-        cash.setCashIdentity(cashIdentity);
-        cashService.saveCash(cash);
+        Basket cash = new Basket();
+        BasketIdentity basketIdentity = new BasketIdentity();
+        basketIdentity.setMenuId(menu.getMenuId());
+        basketIdentity.setChatId(chatId);
+        cash.setBasketIdentity(basketIdentity);
+        basketService.saveBasket(cash);
         return message;
     }
 
     private InlineKeyboardMarkup getInlineKeyboardMarkup(LunchBoxMenu menu, String text) {
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        markupInLine = new InlineKeyboardMarkup();
+        rowsInLine = new ArrayList<>();
+        rowInLine = new ArrayList<>();
         var minusButton = new InlineKeyboardButton();
 
         minusButton.setText("-");
@@ -130,7 +144,7 @@ public class ExecuteCashMessage {
 
         var addToCashButton = new InlineKeyboardButton();
         addToCashButton.setText("Savatchaga qo'sish");
-        addToCashButton.setCallbackData(ADD_TO_CASH_BUTTON + "_" + menu.getMenuId());
+        addToCashButton.setCallbackData(ADD_TO_BASKET_BUTTON + "_" + menu.getMenuId());
 
 
         rowInLine.add(minusButton);
@@ -160,10 +174,98 @@ public class ExecuteCashMessage {
         messageText.append(" ta bor");
         messageText.append(", ");
         messageText.append("narxi: <b>");
-        NumberFormat formatter = new DecimalFormat("#,###,###");
-        messageText.append(formatter.format(amount));
+        formatAmount(amount, messageText);
         messageText.append(" so'm</b>");
         messageText.append("\n");
         return messageText.toString();
+    }
+
+    private void formatAmount(Double amount, StringBuilder messageText) {
+        NumberFormat formatter = new DecimalFormat("#,###,###");
+        messageText.append(formatter.format(amount));
+    }
+
+    public SendMessage showBasket(Long chatId) {
+        message.setChatId(String.valueOf(chatId));
+        List<Basket> basketList = basketService.getCashChatId(chatId);
+
+        StringBuilder str = new StringBuilder("Savatchada:\n");
+
+        AtomicReference<Double> amount = new AtomicReference<>(0.0);
+        basketList.forEach(r -> {
+            LunchBoxMenu menu = menuService.getMenuById(r.getBasketIdentity().getMenuId());
+            str.append("<i>");
+            str.append(r.getQuantity() * r.getQuantity() + " x ");
+            str.append(menu.getName());
+            str.append("</i> narxi:<b>");
+            formatAmount(menu.getAmount(), str);
+            str.append("</b>\n");
+            amount.set((double) (amount.get() + r.getQuantity() * menu.getAmount()));
+        });
+        str.append("Mahsulotlar: <b>");
+        formatAmount(amount.get(), str);
+        str.append("</b>\n");
+       /* str.append("Yetkazib berish narxi: ");
+        str.append("<b>10,000</b>");
+        str.append("\n");*/
+        str.append("Jami: <b>");
+        formatAmount((amount.get()), str);
+        str.append("</b>\n");
+
+        message.setText(str.toString());
+
+        rowsInLine = new ArrayList<>();
+        rowInLine = new ArrayList<>();
+
+        var backButton = new InlineKeyboardButton();
+
+        backButton.setText("Orqaga");
+        backButton.setCallbackData(BACK_BUTTON_IN_BASKET);
+
+        var approveOrder = new InlineKeyboardButton();
+
+        approveOrder.setText("Buyurtmani tasdiqlash");
+        approveOrder.setCallbackData(APPROVE_ORDER);
+
+
+        var clearBasket = new InlineKeyboardButton();
+        clearBasket.setText("Savatchani tozalash");
+        clearBasket.setCallbackData(CLEAR_BASKET);
+
+
+        rowInLine.add(backButton);
+        rowInLine.add(approveOrder);
+
+        rowsInLine.add(rowInLine);
+        rowInLine = new ArrayList<>();
+        rowInLine.add(clearBasket);
+        rowsInLine.add(rowInLine);
+
+        markupInLine.setKeyboard(rowsInLine);
+        message.setReplyMarkup(markupInLine);
+        message.enableHtml(true);
+
+        return message;
+    }
+
+    public SendMessage createOrder(Long chatId, OrderService orderService) {
+        message.setChatId(String.valueOf(chatId));
+
+        List<Basket> basketList = basketService.getCashChatId(chatId);
+        List<Orders> ordersList = new ArrayList<>();
+
+        basketList.forEach(r -> {
+            Orders order = new Orders();
+            LunchBoxMenu menu = menuService.getMenuById(r.getBasketIdentity().getMenuId());
+            order.setChatId(chatId);
+            order.setMenuId(menu.getMenuId());
+            order.setAmount(r.getQuantity() * menu.getAmount());
+            ordersList.add(order);
+            orderService.createOrder(order);
+        });
+//        orderService.saveOrders(ordersList);
+        basketService.clearBasket(chatId);
+        message.setText("Buyurmangiz qabul qilindi.");
+        return message;
     }
 }

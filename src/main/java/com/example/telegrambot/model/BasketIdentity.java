@@ -14,7 +14,7 @@ import java.io.Serializable;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CashIdentity implements Serializable {
+public class BasketIdentity implements Serializable {
 
     @NotNull
     private Long chatId;

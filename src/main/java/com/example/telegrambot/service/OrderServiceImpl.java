@@ -1,48 +1,27 @@
 package com.example.telegrambot.service;
 
-import com.example.telegrambot.model.FoodLine;
 import com.example.telegrambot.model.Orders;
 import com.example.telegrambot.repository.OrdersRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import static com.example.telegrambot.model.FoodLine.*;
-
+@Service
 public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrdersRepository ordersRepository;
 
     @Override
-    public void createOrder(Long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(chatId));
+    public void createOrder(Orders order) {
+        ordersRepository.save(order);
+    }
 
-        message.setText("Ovqat zakaz qiling");
-
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
-
-        var firstButton = new InlineKeyboardButton();
-
-        firstButton.setText("1 - ovqat");
-        firstButton.setCallbackData(FIRST.getName());
-
-        rowInLine.add(firstButton);
-
-        rowsInLine.add(rowInLine);
-
-        markupInLine.setKeyboard(rowsInLine);
-        message.setReplyMarkup(markupInLine);
-
-        executeMessage(message);
-
+    @Override
+    public void saveOrders(List<Orders> ordersList) {
+        ordersRepository.saveAll(ordersList);
     }
 
     private void executeMessage(SendMessage message) {

@@ -6,7 +6,9 @@ import java.util.List;
 
 public interface OrderService {
 
-    void createOrder(Long chatId);
+    void createOrder(Orders order);
+
+    void saveOrders(List<Orders> ordersList);
 
     void updateOrder(Long chatId, Long orderId);
 

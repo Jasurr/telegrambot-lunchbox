@@ -12,11 +12,11 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "cosg_cash", uniqueConstraints = {@UniqueConstraint(columnNames = {"chatId", "menuId"})})
-public class Cash {
+@Table(name = "cosg_basket", uniqueConstraints = {@UniqueConstraint(columnNames = {"chatId", "menuId"})})
+public class Basket {
 
     @EmbeddedId
-    private CashIdentity cashIdentity;
+    private BasketIdentity basketIdentity;
 
     @NotNull
     private Integer quantity = 1;

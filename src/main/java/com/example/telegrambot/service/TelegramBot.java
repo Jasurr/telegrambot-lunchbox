@@ -4,8 +4,8 @@ package com.example.telegrambot.service;
 import com.example.telegrambot.config.BotConfig;
 import com.example.telegrambot.model.*;
 import com.example.telegrambot.repository.CosgUsersRepository;
-import com.example.telegrambot.service.cash.CashService;
-import com.example.telegrambot.service.cash.ExecuteCashMessage;
+import com.example.telegrambot.service.basket.BasketService;
+import com.example.telegrambot.service.basket.ExecuteBasketMessage;
 import com.example.telegrambot.service.main.ExecuteMainMenu;
 import com.example.telegrambot.service.main.MenuService;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,9 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 
-import static com.example.telegrambot.service.cash.CashButtonConstants.*;
+import static com.example.telegrambot.command.ButtonCommands.TO_BACK;
+import static com.example.telegrambot.command.ButtonCommands.TO_BASKET;
+import static com.example.telegrambot.service.basket.BasketButtonConstants.*;
 
 @Slf4j
 @Component
@@ -31,7 +33,10 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     private MenuService menuService;
     @Autowired
-    private CashService cashService;
+    private BasketService basketService;
+    @Autowired
+    private OrderService orderService;
+
     final String weekDay = LocalDate.now().getDayOfWeek().name();
     final BotConfig config;
 
@@ -63,6 +68,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/start":
                     registerUser(update.getMessage());
                     prepareAndSendMessage(chatId, "MAIN_MENU");
+                    basketService.clearBasket(chatId);
                     break;
                 case "/help":
                     prepareAndSendMessage(chatId, HELP_TEXT);
@@ -81,8 +87,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "3-taom":
                     choosedMeat(chatId, messageText);
                     break;
-                case "Savatchaga":
-                    addToCash(chatId);
+                case TO_BASKET:
+                    showBasket(chatId, messageText);
+                    break;
+                case TO_BACK:
+                    prepareAndSendMessage(chatId, "MAIN_MENU");
                     break;
                 default:
                     prepareAndSendMessage(chatId, "Sorry, command was not recognized");
@@ -101,22 +110,32 @@ public class TelegramBot extends TelegramLongPollingBot {
                     menuId = Long.parseLong(callbackData.substring(PLUS_BUTTON.length() + 1));
                     quantity = 1;
                 }
-                boolean b = cashService.updateQuantity(chatId, menuId, quantity);
+                boolean b = basketService.updateQuantity(chatId, menuId, quantity);
                 if (b)
                     executeEditMessageText(chatId, messageId, menuId);
 
-            } else if (callbackData.contains(ADD_TO_CASH_BUTTON)) {
-                menuId = Long.parseLong(callbackData.substring(ADD_TO_CASH_BUTTON.length() + 1));
-                cashService.updateStatus(chatId, menuId, Status.ACTIVE.name());
+            } else if (callbackData.contains(ADD_TO_BASKET_BUTTON)) {
+                menuId = Long.parseLong(callbackData.substring(ADD_TO_BASKET_BUTTON.length() + 1));
+                basketService.updateStatus(chatId, menuId, Status.ACTIVE.name());
                 showAllMenus(chatId);
+            } else if (callbackData.contains(BACK_BUTTON_IN_BASKET)) {
+                System.out.println(BACK_BUTTON_IN_BASKET);
+                showAllMenus(chatId);
+            } else if (callbackData.contains(APPROVE_ORDER)) {
+                createOrder(chatId);
             }
 
         }
 
     }
 
-    private void addToCash(Long chatId) {
-
+    /**
+     * Korzinkada qancha mahsulotni tanlagan bo'lsa barchasini ko'rsatib beramiz
+     *
+     * @param chatId
+     */
+    private void showBasket(Long chatId, String messageText) {
+        executeMessage(new ExecuteBasketMessage(menuService, basketService).showBasket(chatId));
     }
 
     /**
@@ -128,7 +147,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      */
     private void executeEditMessageText(long chatId, long messageId, Long menuId) {
         try {
-            execute(new ExecuteCashMessage(menuService, cashService).executeEditMessageText(chatId, messageId, menuId));
+            execute(new ExecuteBasketMessage(menuService, basketService).executeEditMessageText(chatId, messageId, menuId));
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
@@ -140,7 +159,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param chatId
      */
     private void showAllMenus(long chatId) {
-        executeMessage(new ExecuteCashMessage(menuService, cashService).executeMessage(chatId, weekDay));
+        executeMessage(new ExecuteBasketMessage(menuService, basketService).executeMessage(chatId, weekDay));
     }
 
     private void registerUser(Message msg) {
@@ -167,8 +186,7 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param messageText
      */
     private void choosedMeat(long chatId, String messageText) {
-
-        executeMessage(new ExecuteCashMessage(menuService, cashService).choosedMeat(chatId, messageText, weekDay));
+        executeMessage(new ExecuteBasketMessage(menuService, basketService).choosedMeat(chatId, messageText, weekDay));
     }
 
     private void executeMessage(SendMessage message) {
@@ -187,6 +205,16 @@ public class TelegramBot extends TelegramLongPollingBot {
      * @param textToSend
      */
     private void prepareAndSendMessage(long chatId, String textToSend) {
-        executeMessage(ExecuteMainMenu.prepareAndSendMessage(chatId, textToSend));
+        executeMessage(new ExecuteMainMenu().prepareAndSendMessage(chatId, textToSend));
+    }
+
+    /**
+     * Savatchadagi mahsulotlarga buyurtma berish oxirgi jarayon
+     *
+     * @param chatId
+     */
+    private void createOrder(Long chatId) {
+        executeMessage(new ExecuteBasketMessage(menuService, basketService).createOrder(chatId, orderService));
+        prepareAndSendMessage(chatId, "MAIN_MENU");
     }
 }

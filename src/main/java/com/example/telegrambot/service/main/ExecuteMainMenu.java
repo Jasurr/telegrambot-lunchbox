@@ -11,7 +11,7 @@ import java.util.List;
 public class ExecuteMainMenu {
 
 
-    public static SendMessage prepareAndSendMessage(long chatId, String textToSend) {
+    public SendMessage prepareAndSendMessage(long chatId, String textToSend) {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
         message.setText(textToSend);
@@ -37,11 +37,11 @@ public class ExecuteMainMenu {
 
         keyboardRows.add(row);
 
-
         keyboardMarkup.setKeyboard(keyboardRows);
 
         message.setReplyMarkup(keyboardMarkup);
 
         return message;
     }
+
 }
